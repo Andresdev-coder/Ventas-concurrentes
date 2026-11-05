@@ -1,3 +1,4 @@
+-- Inventario persistente: el CHECK impide guardar stocks negativos.
 CREATE TABLE IF NOT EXISTS productos (
     id INTEGER PRIMARY KEY,
     nombre VARCHAR(120) NOT NULL,
@@ -5,6 +6,7 @@ CREATE TABLE IF NOT EXISTS productos (
     stock INTEGER NOT NULL CHECK (stock >= 0)
 );
 
+-- Historial de ventas. BIGSERIAL asigna IDs crecientes automáticamente.
 CREATE TABLE IF NOT EXISTS ventas (
     id BIGSERIAL PRIMARY KEY,
     cliente VARCHAR(160) NOT NULL,
@@ -17,4 +19,5 @@ CREATE TABLE IF NOT EXISTS ventas (
     mensaje VARCHAR(240)
 );
 
+-- Acelera el ordenamiento de ventas recientes por ID.
 CREATE INDEX IF NOT EXISTS idx_ventas_creada ON ventas (id DESC);

@@ -1,5 +1,7 @@
+# Servicios locales: base de datos y API Java.
 services:
   postgres:
+    # Imagen oficial de PostgreSQL; estas credenciales son solo para desarrollo local.
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: ventas
@@ -7,8 +9,10 @@ services:
       POSTGRES_PASSWORD: ventas
     ports:
       - "5432:5432"
+    # El volumen conserva datos aunque el contenedor se detenga o se elimine.
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    # Docker no inicia el backend hasta que PostgreSQL acepte conexiones.
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ventas -d ventas"]
       interval: 5s
@@ -16,17 +20,21 @@ services:
       retries: 10
 
   backend:
+    # Construye la imagen a partir del Dockerfile dentro de backend/.
     build: ./backend
     environment:
+      # Dentro de Compose se usa el nombre del servicio como hostname de PostgreSQL.
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ventas
       SPRING_DATASOURCE_USERNAME: ventas
       SPRING_DATASOURCE_PASSWORD: ventas
       CORS_ORIGINS: http://localhost:5173
+    # Mapea puertos del equipo a los puertos de los contenedores.
     ports:
       - "8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
 
+# Volumen administrado por Docker para persistir la base de datos.
 volumes:
   postgres_data:

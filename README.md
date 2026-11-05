@@ -4,12 +4,23 @@ Backend: Java 17 + Spring Boot 3 + PostgreSQL (hilos y pool de cajeros)
 Frontend: React + Vite (se despliega en Vercel)
 
 ## Como funciona la concurrencia
-- `VentaService` tiene un `ThreadPoolExecutor` fijo con N hilos `Cajero-1..N`.
-- Cada venta es una tarea (`Runnable`) que se encola y la toma el primer cajero libre.
-- Estados de cada venta: PENDIENTE -> EN_PROCESO -> COMPLETADA / RECHAZADA.
-- PostgreSQL descuenta stock con un `UPDATE` condicional atomico, incluso si varios cajeros venden el mismo producto.
-- Contadores compartidos con `AtomicInteger` / `AtomicLong`; estados con campos `volatile`.
-- `/api/resumen` verifica que (stock inicial - stock final) == unidades vendidas.
+- `VentaService` crea un `ThreadPoolExecutor` fijo con N trabajadores llamados `Cajero-1..N`.
+- Cada solicitud aceptada se guarda como `PENDIENTE` y se entrega como tarea a ese pool.
+- Si todos los cajeros están ocupados, la tarea espera en `LinkedBlockingQueue`; no se crea un hilo por venta.
+- El hilo cajero cambia la venta a `EN_PROCESO`, simula la atención y luego intenta descontar el inventario.
+- El `UPDATE productos SET stock = stock - ? WHERE ... AND stock >= ?` es una sola operación atómica en PostgreSQL.
+  Si dos cajeros intentan vender las últimas unidades, la base serializa la actualización de esa fila y
+  solo permite el descuento que todavía cumple `stock >= cantidad`.
+- Al final, la venta queda `COMPLETADA` si se descontó stock o `RECHAZADA` si no había suficiente.
+- La API responde `202 Accepted` al encolar la venta; eso significa que fue aceptada para procesarse,
+  no que la venta ya se haya completado.
+- `volatile` en estado/cajero/mensaje hace visibles en memoria los cambios entre el hilo cajero y los
+  hilos HTTP. PostgreSQL conserva esos cambios para que el historial sobreviva al reinicio.
+- `/api/resumen` verifica al terminar que (stock inicial - stock actual) == unidades de ventas completadas.
+
+Para estudiar el código, sigue esta ruta: `VentaController.registrar` valida la petición,
+`VentaService.registrar` guarda y encola el trabajo, `VentaService.procesar` lo ejecuta en un cajero,
+y `InventarioService.descontar` resuelve de forma segura la competencia por el stock.
 
 ## Ejecutar en local
 Requisito: instalar Docker Desktop y dejarlo iniciado. Docker descargara PostgreSQL, Java/Maven

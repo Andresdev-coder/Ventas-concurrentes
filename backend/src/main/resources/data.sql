@@ -1,3 +1,4 @@
+-- Carga los productos iniciales solo si aún no existen; no repone stock al reiniciar el backend.
 INSERT INTO productos (id, nombre, stock_inicial, stock) VALUES
     (1, 'Laptop', 5, 5),
     (2, 'Mouse', 10, 10),

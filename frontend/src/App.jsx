@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 
+// URL configurable al compilar; por defecto apunta al backend local.
 const API = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
+/** Cliente HTTP pequeño: convierte respuestas JSON en objetos y errores HTTP en excepciones. */
 async function api(path, options) {
   const res = await fetch(`${API}${path}`, {
     headers: { "Content-Type": "application/json" },
@@ -14,6 +16,7 @@ async function api(path, options) {
   return res.json();
 }
 
+// Traduce los códigos que envía Java a textos legibles en la pantalla.
 const ETIQUETA = {
   PENDIENTE: "Pendiente",
   EN_PROCESO: "En proceso",
@@ -22,14 +25,15 @@ const ETIQUETA = {
 };
 
 export default function App() {
+  // useState guarda los datos que cambian; al actualizarlos React vuelve a dibujar la interfaz.
   const [productos, setProductos] = useState([]);
   const [ventas, setVentas] = useState([]);
   const [resumen, setResumen] = useState(null);
   const [error, setError] = useState("");
   const [form, setForm] = useState({ cliente: "", productoId: 1, cantidad: 1 });
 
-  // Polling: cada segundo se consulta el estado del backend,
-  // asi se ve avanzar a los hilos cajeros casi en tiempo real.
+  // Polling: pide inventario, ventas y resumen en paralelo cada segundo.
+  // useCallback conserva la función entre renderizados para que el efecto no se reinicie.
   const refrescar = useCallback(async () => {
     try {
       const [p, v, r] = await Promise.all([
@@ -46,12 +50,14 @@ export default function App() {
     }
   }, []);
 
+  // useEffect inicia el refresco al montar la pantalla y limpia el intervalo al desmontarla.
   useEffect(() => {
     refrescar();
     const id = setInterval(refrescar, 1000);
     return () => clearInterval(id);
   }, [refrescar]);
 
+  // Ejecuta una acción de usuario y presenta errores del backend en la interfaz.
   async function accion(fn) {
     try {
       setError("");
@@ -62,6 +68,7 @@ export default function App() {
     }
   }
 
+  // Envía el formulario. preventDefault evita que el navegador recargue la página.
   const registrar = (e) => {
     e.preventDefault();
     accion(async () => {
@@ -77,11 +84,13 @@ export default function App() {
     });
   };
 
+  // Acciones de demostración: generan 20 ventas o solicitan reiniciar los datos de la demo.
   const simular = () => accion(() => api("/api/ventas/simular?cantidad=20", { method: "POST" }));
   const reiniciar = () => accion(() => api("/api/reiniciar", { method: "POST" }));
 
   return (
     <main className="container">
+      {/* Encabezado con una explicación breve del modelo de concurrencia. */}
       <header>
         <h1>Ventas e Inventario Concurrente</h1>
         <p className="sub">
@@ -90,8 +99,10 @@ export default function App() {
         </p>
       </header>
 
+      {/* El mensaje solo aparece si falló una petición o una acción. */}
       {error && <div className="alerta">{error}</div>}
 
+      {/* Indicadores del pool: activos ejecutan tareas; en cola esperan un trabajador. */}
       {resumen && (
         <section className="grid resumen">
           <Stat titulo="Cajeros activos" valor={`${resumen.cajerosActivos} / ${resumen.cajeros}`} />
@@ -106,6 +117,7 @@ export default function App() {
         </section>
       )}
 
+      {/* Tarjetas de producto: el backend consulta stock actualizado desde PostgreSQL. */}
       <section className="card">
         <h2>Inventario</h2>
         <div className="grid productos">
@@ -128,6 +140,7 @@ export default function App() {
         </div>
       </section>
 
+      {/* Formulario de venta y controles para experimentar con la concurrencia. */}
       <section className="card">
         <h2>Registrar venta</h2>
         <form className="form" onSubmit={registrar}>
@@ -163,6 +176,7 @@ export default function App() {
         </div>
       </section>
 
+      {/* Tabla de seguimiento: el polling muestra cómo cada venta cambia de estado. */}
       <section className="card">
         <h2>Ventas (últimas 50)</h2>
         <div className="scroll">
@@ -207,6 +221,7 @@ export default function App() {
   );
 }
 
+/** Componente reutilizable para mostrar una métrica del resumen. */
 function Stat({ titulo, valor }) {
   return (
     <div className="stat">

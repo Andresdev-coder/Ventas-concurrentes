@@ -19,6 +19,7 @@
     <java.version>17</java.version>
   </properties>
 
+  <!-- Dependencias del backend; Maven resuelve las versiones compatibles con Spring Boot. -->
   <dependencies>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -28,6 +29,7 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-jdbc</artifactId>
     </dependency>
+    <!-- Driver que permite a JDBC comunicarse con PostgreSQL en tiempo de ejecución. -->
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
@@ -35,6 +37,7 @@
     </dependency>
   </dependencies>
 
+  <!-- Plugin que empaqueta y ejecuta la aplicación Spring Boot. -->
   <build>
     <plugins>
       <plugin>
