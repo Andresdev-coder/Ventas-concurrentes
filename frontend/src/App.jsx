@@ -92,7 +92,7 @@ export default function App() {
     <main className="container">
       {/* Encabezado con una explicación breve del modelo de concurrencia. */}
       <header>
-        <h1>Ventas e Inventario Concurrente</h1>
+        <h1>Ventas e Inventario Concurrente | Angel Joao</h1>
         <p className="sub">
           Cada venta la atiende un hilo cajero del backend (Spring Boot). Las que llegan con todos
           los cajeros ocupados esperan en cola.
